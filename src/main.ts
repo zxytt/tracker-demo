@@ -28,8 +28,12 @@ app.directive('permiss', {
 
 app.mount('#app');
 
-window.tracker = new Tracker({
+const tracker = new Tracker({
   appId: 'CargoGo',
   userId: 'hu123456',
   url: 'https://www.cargogo.com.cn/api/track'
 });
+
+if (tracker) {
+  (window as any).tracker = tracker
+}
