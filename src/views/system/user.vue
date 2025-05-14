@@ -21,7 +21,7 @@
 </template>
 
 <script setup lang="ts" name="system-user">
-import { ref, reactive } from 'vue';
+import { ref, reactive, watch } from 'vue';
 import { ElMessage } from 'element-plus';
 import { CirclePlusFilled } from '@element-plus/icons-vue';
 import { User } from '@/types/user';
@@ -30,7 +30,8 @@ import TableCustom from '@/components/table-custom.vue';
 import TableDetail from '@/components/table-detail.vue';
 import TableSearch from '@/components/table-search.vue';
 import { FormOption, FormOptionList } from '@/types/form-option';
-
+import dayjs from 'dayjs'
+ 
 // 查询相关
 const query = reactive({
     name: '',
@@ -45,21 +46,32 @@ const handleSearch = () => {
 // 表格相关
 let columns = ref([
     { type: 'index', label: '序号', width: 55, align: 'center' },
-    { prop: 'name', label: '用户名' },
-    { prop: 'phone', label: '手机号' },
-    { prop: 'role', label: '角色' },
-    { prop: 'operator', label: '操作', width: 250 },
+    { prop: 'appId', label: '应用ID' },
+    { prop: 'userId', label: '用户ID' },
+    { prop: 'event', label: '事件类型' },
+    { prop: 'uuid', label: '事件uuid' },
+    { prop: 'url', label: '页面url' },
+    { prop: 'deviceInfo', label: '设备信息' },
+    { prop: 'timestamp', label: '操作时间' },
 ])
 const page = reactive({
     index: 1,
-    size: 10,
+    size: 100,
     total: 0,
 })
 const tableData = ref<User[]>([]);
 const getData = async () => {
-    const res = await fetchUserData()
-    tableData.value = res.data.list;
-    page.total = res.data.pageTotal;
+    // const res = await fetchUserData()
+    const data = JSON.parse(localStorage.getItem('trackData') || '[]')
+    tableData.value = data.map((item) => {
+        return {
+            ...item,
+            timestamp: dayjs(item.timestamp).format('YYYY-MM-DD HH:mm:ss'),
+            deviceInfo: item.deviceInfo.browser + ' ' + item.deviceInfo.version,
+        }
+    })
+    console.log('table', tableData.value)
+    page.total = data.length;
 };
 getData();
 
@@ -143,6 +155,7 @@ const handleView = (row: User) => {
 const handleDelete = (row: User) => {
     ElMessage.success('删除成功');
 }
+
 </script>
 
 <style scoped></style>

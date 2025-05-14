@@ -1,37 +1,6 @@
 <template>
     <div>
-        <TableSearch :query="query" :options="searchOpt" :search="handleSearch" />
-        <div class="container">
-
-            <TableCustom :columns="columns" :tableData="tableData" :total="page.total" :viewFunc="handleView"
-                :delFunc="handleDelete" :page-change="changePage" :editFunc="handleEdit">
-                <template #toolbarBtn>
-                    <el-button type="warning" :icon="CirclePlusFilled" @click="visible = true">新增</el-button>
-                </template>
-                <template #status="{ rows }">
-                    <el-tag type="success" v-if="rows.status">启用</el-tag>
-                    <el-tag type="danger" v-else>禁用</el-tag>
-                </template>
-                <template #permissions="{ rows }">
-                    <el-button type="primary" size="small" plain @click="handlePermission(rows)">管理</el-button>
-                </template>
-            </TableCustom>
-        </div>
-        <el-dialog :title="isEdit ? '编辑' : '新增'" v-model="visible" width="700px" destroy-on-close
-            :close-on-click-modal="false" @close="closeDialog">
-            <TableEdit :form-data="rowData" :options="options" :edit="isEdit" :update="updateData" />
-        </el-dialog>
-        <el-dialog title="查看详情" v-model="visible1" width="700px" destroy-on-close>
-            <TableDetail :data="viewData">
-                <template #status="{ rows }">
-                    <el-tag type="success" v-if="rows.status">启用</el-tag>
-                    <el-tag type="danger" v-else>禁用</el-tag>
-                </template>
-            </TableDetail>
-        </el-dialog>
-        <el-dialog title="权限管理" v-model="visible2" width="500px" destroy-on-close>
-            <RolePermission :permiss-options="permissOptions" />
-        </el-dialog>
+        角色管理
     </div>
 </template>
 

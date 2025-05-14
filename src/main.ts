@@ -6,6 +6,7 @@ import router from './router';
 import { usePermissStore } from './store/permiss';
 import 'element-plus/dist/index.css';
 import './assets/css/icon.css';
+import Tracker from './utils/tracke.js';
 
 const app = createApp(App);
 app.use(createPinia());
@@ -26,3 +27,9 @@ app.directive('permiss', {
 });
 
 app.mount('#app');
+
+window.tracker = new Tracker({
+  appId: 'CargoGo',
+  userId: 'hu123456',
+  url: 'https://www.cargogo.com.cn/api/track'
+});

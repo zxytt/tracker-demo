@@ -7,22 +7,13 @@ import 'nprogress/nprogress.css';
 const routes: RouteRecordRaw[] = [
     {
         path: '/',
-        redirect: '/dashboard',
+        redirect: '/system-user',
     },
     {
         path: '/',
         name: 'Home',
         component: Home,
         children: [
-            {
-                path: '/dashboard',
-                name: 'dashboard',
-                meta: {
-                    title: '系统首页',
-                    noAuth: true,
-                },
-                component: () => import(/* webpackChunkName: "dashboard" */ '../views/dashboard.vue'),
-            },
             {
                 path: '/system-user',
                 name: 'system-user',
@@ -273,17 +264,17 @@ const router = createRouter({
 
 router.beforeEach((to, from, next) => {
     NProgress.start();
-    const role = localStorage.getItem('vuems_name');
-    const permiss = usePermissStore();
+    // const role = localStorage.getItem('vuems_name');
+    // const permiss = usePermissStore();
 
-    if (!role && to.meta.noAuth !== true) {
-        next('/login');
-    } else if (typeof to.meta.permiss == 'string' && !permiss.key.includes(to.meta.permiss)) {
-        // 如果没有权限，则进入403
-        next('/403');
-    } else {
+    // if (!role && to.meta.noAuth !== true) {
+    //     next('/login');
+    // } else if (typeof to.meta.permiss == 'string' && !permiss.key.includes(to.meta.permiss)) {
+    //     // 如果没有权限，则进入403
+    //     next('/403');
+    // } else {
         next();
-    }
+    // }
 });
 
 router.afterEach(() => {

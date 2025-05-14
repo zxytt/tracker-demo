@@ -1,37 +1,6 @@
 <template>
     <div>
-        <div class="container">
-            <TableCustom :columns="columns" :tableData="menuData" row-key="index" :has-pagination="false"
-                :viewFunc="handleView" :delFunc="handleDelete" :editFunc="handleEdit">
-                <template #toolbarBtn>
-                    <el-button type="warning" :icon="CirclePlusFilled" @click="visible = true">新增</el-button>
-                </template>
-                <template #icon="{ rows }">
-                    <el-icon>
-                        <component :is="rows.icon"></component>
-                    </el-icon>
-                </template>
-            </TableCustom>
-
-        </div>
-        <el-dialog :title="isEdit ? '编辑' : '新增'" v-model="visible" width="700px" destroy-on-close
-            :close-on-click-modal="false" @close="closeDialog">
-            <TableEdit :form-data="rowData" :options="options" :edit="isEdit" :update="updateData">
-                <template #parent>
-                    <el-cascader v-model="rowData.pid" :options="cascaderOptions" :props="{ checkStrictly: true }"
-                        clearable />
-                </template>
-            </TableEdit>
-        </el-dialog>
-        <el-dialog title="查看详情" v-model="visible1" width="700px" destroy-on-close>
-            <TableDetail :data="viewData">
-                <template #icon="{ rows }">
-                    <el-icon>
-                        <component :is="rows.icon"></component>
-                    </el-icon>
-                </template>
-            </TableDetail>
-        </el-dialog>
+        菜单管理
     </div>
 </template>
 

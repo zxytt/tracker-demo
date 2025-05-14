@@ -13,6 +13,7 @@
 		"@wangeditor/editor-for-vue": "^5.1.12",
 		"axios": "^1.6.3",
 		"countup.js": "^2.8.0",
+		"dayjs": "^1.11.13",
 		"echarts": "^5.5.0",
 		"echarts-wordcloud": "^2.1.0",
 		"element-plus": "^2.6.3",

@@ -1,5 +1,5 @@
 <template>
-	<el-form ref="formRef" :model="form" :rules="rules" :label-width="options.labelWidth">
+	<el-form ref="formRef" :model="form" :label-width="options.labelWidth">
 		<el-row>
 			<el-col :span="options.span" v-for="item in options.list">
 				<el-form-item :label="item.label" :prop="item.prop">
@@ -32,7 +32,7 @@
 		</el-row>
 
 		<el-form-item>
-			<el-button type="primary" @click="saveEdit(formRef)">保 存</el-button>
+			<el-button type="primary" @click="saveEdit(formRef)" data-track="click_100000001">保 存</el-button>
 		</el-form-item>
 	</el-form>
 </template>
