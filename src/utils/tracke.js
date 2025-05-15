@@ -1,120 +1,131 @@
 // import { getDeviceInfo } from './util'
 
 // 单例控制
-let instance = null
+let instance = null;
 // 原生方法缓存
-let originalPushState = null
-let originalReplaceState = null
+let originalPushState = null;
+let originalReplaceState = null;
 
 export default class Tracker {
   constructor(options = {}) {
     // 单例模式
-    if (instance) return instance
-    instance = this
+    if (instance) return instance;
+    instance = this;
 
     // 配置项验证
     if (!options.appId || !options.userId || !options.url) {
-      throw new Error('Missing required parameters: appId, userId, url')
+      throw new Error('Missing required parameters: appId, userId, url');
     }
 
-    this.appId = options.appId
-    this.userId = options.userId
-    this.url = options.url
-    this.deviceInfo = getDeviceInfo()
-    this.queue = []
-    this.maxBatchSize = 10
-    this._isDestroyed = false
+    this.appId = options.appId;
+    this.userId = options.userId;
+    this.url = options.url;
+    this.deviceInfo = getDeviceInfo();
+    this.queue = [];
+    this.maxBatchSize = 10;
+    this._isDestroyed = false;
+
+    // 防抖相关配置
+    this._debounceTimer = null;
+    this._debounceDelay = 1000; // 批量上报防抖延迟
 
     // 自动埋点初始化
-    this._initCore()
+    this._initCore();
   }
 
   _initCore() {
     // 保证只初始化一次
-    if (this._hasInitialized) return
-    this._hasInitialized = true
+    if (this._hasInitialized) return;
+    this._hasInitialized = true;
 
     // 保存原生方法
-    originalPushState = originalPushState || window.history.pushState
-    originalReplaceState = originalReplaceState || window.history.replaceState
+    originalPushState = originalPushState || window.history.pushState;
+    originalReplaceState = originalReplaceState || window.history.replaceState;
 
     // 事件监听
-    this._bindRouterEvents()
-    this._bindClickEvent()
+    this._bindRouterEvents();
+    this._bindClickEvent();
 
     // 定时上报
-    this._flushTimer = setInterval(() => this._flushQueue(), 10000)
+    this._flushTimer = setInterval(() => this._flushQueue(), 10000);
   }
 
   _bindRouterEvents() {
     // 防重复绑定检查
-    if (this._routerEventsBound) return
-    this._routerEventsBound = true
+    if (this._routerEventsBound) return;
+    this._routerEventsBound = true;
 
     // 重写history方法
-    this._patchHistoryMethods()
+    this._patchHistoryMethods();
     
-    // 事件处理器（带防抖）
-    const handleRouteChange = this._createRouteHandler()
+    // 事件处理器（带增强防抖）
+    const handleRouteChange = this._createDebouncedRouteHandler();
     
     // 监听事件
-    window.addEventListener('popstate', handleRouteChange)
-    window.addEventListener('pushstate', handleRouteChange)
-    window.addEventListener('replacestate', handleRouteChange)
+    window.addEventListener('popstate', handleRouteChange);
+    window.addEventListener('pushstate', handleRouteChange);
+    window.addEventListener('replacestate', handleRouteChange);
   }
 
   _patchHistoryMethods() {
     // 代理pushState
     window.history.pushState = (state, title, url) => {
-      const result = originalPushState.call(history, state, title, url)
-      window.dispatchEvent(new CustomEvent('pushstate', { detail: { url, state }}))
-      return result
-    }
+      const result = originalPushState.call(history, state, title, url);
+      window.dispatchEvent(new CustomEvent('pushstate', { detail: { url, state }}));
+      return result;
+    };
 
     // 代理replaceState
     window.history.replaceState = (state, title, url) => {
-      const result = originalReplaceState.call(history, state, title, url)
-      window.dispatchEvent(new CustomEvent('replacestate', { detail: { url, state }}))
-      return result
-    }
+      const result = originalReplaceState.call(history, state, title, url);
+      window.dispatchEvent(new CustomEvent('replacestate', { detail: { url, state }}));
+      return result;
+    };
   }
 
-  _createRouteHandler() {
-    let lastUrl = ''
-    const debounceTime = 300
+  _createDebouncedRouteHandler() {
+    let lastUrl = '';
+    let lastTimestamp = 0;
+    const MIN_INTERVAL = 1000; // 最小上报间隔（毫秒）
     
     return (e) => {
-      const currentUrl = window.location.href
-      console.log(e.type, currentUrl)
-      // 防抖+重复路径检查
-      if (currentUrl === lastUrl) return
-      lastUrl = currentUrl
+      const currentUrl = window.location.href;
+      const now = Date.now();
       
+      // 防抖+重复路径检查+最小时间间隔检查
+      if (currentUrl === lastUrl || (now - lastTimestamp < MIN_INTERVAL)) {
+        return;
+      }
+      
+      lastUrl = currentUrl;
+      lastTimestamp = now;
 
       this.track('pageview', {
         uuid: currentUrl.split('#')[1],
         url: currentUrl.split('#')[1],
-      })
-    }
+      });
+    };
   }
 
   _bindClickEvent() {
-    // 使用一次性监听避免重复绑定
-    document.addEventListener('click', this._handleClick.bind(this), true)
+    // 使用防抖包装点击处理函数
+    const debouncedHandler = this._debounce(this._handleClick.bind(this), 300);
+    document.addEventListener('click', debouncedHandler, true);
   }
 
   _handleClick(e) {
-    const target = e.target.closest('[data-track]')
+    const target = e.target.closest('[data-track]');
     if (target) {
       this.track('click', {
         uuid: target.dataset.track,
         url: window.location.href.split('#')[1],
-      })
+      });
     }
   }
 
   track(event, data = {}) {
-    if (this._isDestroyed) return
+    if (this._isDestroyed) return;
+    
     const payload = {
       event,
       timestamp: Date.now(),
@@ -122,19 +133,31 @@ export default class Tracker {
       userId: this.userId,
       deviceInfo: this.deviceInfo,
       ...data
-    }
+    };
 
-    this.queue.push(payload)
-    // if (this.queue.length >= this.maxBatchSize) {
-      this._flushQueue()
-    // }
+    this.queue.push(payload);
+    
+    // 使用防抖机制批量上报
+    this._debounceFlush();
+  }
+
+  _debounceFlush() {
+    // 清除之前的定时器
+    if (this._debounceTimer) {
+      clearTimeout(this._debounceTimer);
+    }
+    
+    // 设置新的定时器
+    this._debounceTimer = setTimeout(() => {
+      this._flushQueue();
+    }, this._debounceDelay);
   }
 
   async _flushQueue() {
-    if (this.queue.length === 0 || this._isDestroyed) return
+    if (this.queue.length === 0 || this._isDestroyed) return;
     
-    const sendData = [...this.queue]
-    this.queue = []
+    const sendData = [...this.queue];
+    this.queue = [];
 
     try {
       // 真实上报逻辑
@@ -142,32 +165,48 @@ export default class Tracker {
       //   method: 'POST',
       //   body: JSON.stringify(sendData),
       //   headers: { 'Content-Type': 'application/json' }
-      // })
-      console.log('上报数据:', sendData)
-      const localstorageData = JSON.parse(localStorage.getItem('trackData') || '[]')
-      localStorage.setItem('trackData', JSON.stringify([...localstorageData, ...sendData]))
+      // });
+      console.log('上报数据:', sendData);
+      const localstorageData = JSON.parse(localStorage.getItem('trackData') || '[]');
+      localStorage.setItem('trackData', JSON.stringify([...localstorageData, ...sendData]));
     } catch (err) {
-      console.error('上报失败:', err)
-      this.queue.unshift(...sendData) // 失败回滚
+      console.error('上报失败:', err);
+      this.queue.unshift(...sendData); // 失败回滚
     }
+  }
+
+  // 通用防抖工具函数
+  _debounce(func, delay) {
+    let timer = null;
+    return function(...args) {
+      clearTimeout(timer);
+      timer = setTimeout(() => {
+        func.apply(this, args);
+      }, delay);
+    };
   }
 
   // 销毁方法
   destroy() {
-    this._isDestroyed = true
-    clearInterval(this._flushTimer)
+    this._isDestroyed = true;
+    clearInterval(this._flushTimer);
+    clearTimeout(this._debounceTimer);
     
     // 恢复原生方法
-    window.history.pushState = originalPushStateb
-    window.history.replaceState = originalReplaceState
+    window.history.pushState = originalPushState;
+    window.history.replaceState = originalReplaceState;
     
     // 移除事件监听
-    window.removeEventListener('popstate', this._handleRouteChange)
-    window.removeEventListener('pushstate', this._handleRouteChange)
-    window.removeEventListener('replacestate', this._handleRouteChange)
-    document.removeEventListener('click', this._handleClick, true)
+    // 注意：这里需要使用相同的引用才能正确移除事件监听
+    const handleRouteChange = this._createDebouncedRouteHandler();
+    window.removeEventListener('popstate', handleRouteChange);
+    window.removeEventListener('pushstate', handleRouteChange);
+    window.removeEventListener('replacestate', handleRouteChange);
     
-    instance = null
+    const debouncedHandler = this._debounce(this._handleClick.bind(this), 1000);
+    document.removeEventListener('click', debouncedHandler, true);
+    
+    instance = null;
   }
 }
 

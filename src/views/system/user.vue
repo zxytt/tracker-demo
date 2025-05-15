@@ -5,7 +5,7 @@
             <TableCustom :columns="columns" :tableData="tableData" :total="page.total" :viewFunc="handleView"
                 :delFunc="handleDelete" :page-change="changePage" :editFunc="handleEdit">
                 <template #toolbarBtn>
-                    <el-button type="warning" :icon="CirclePlusFilled" @click="visible = true">新增</el-button>
+                    <el-button type="warning" :icon="CirclePlusFilled" @click="visible = false" data-track="click_100000002">新增</el-button>
                 </template>
             </TableCustom>
 
