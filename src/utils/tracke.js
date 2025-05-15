@@ -27,7 +27,7 @@ export default class Tracker {
 
     // 防抖相关配置
     this._debounceTimer = null;
-    this._debounceDelay = 1000; // 批量上报防抖延迟
+    this._debounceDelay = 300; // 批量上报防抖延迟
 
     // 自动埋点初始化
     this._initCore();
@@ -86,7 +86,7 @@ export default class Tracker {
   _createDebouncedRouteHandler() {
     let lastUrl = '';
     let lastTimestamp = 0;
-    const MIN_INTERVAL = 1000; // 最小上报间隔（毫秒）
+    const MIN_INTERVAL = 300; // 最小上报间隔（毫秒）
     
     return (e) => {
       const currentUrl = window.location.href;
@@ -203,7 +203,7 @@ export default class Tracker {
     window.removeEventListener('pushstate', handleRouteChange);
     window.removeEventListener('replacestate', handleRouteChange);
     
-    const debouncedHandler = this._debounce(this._handleClick.bind(this), 1000);
+    const debouncedHandler = this._debounce(this._handleClick.bind(this), 300);
     document.removeEventListener('click', debouncedHandler, true);
     
     instance = null;

@@ -5,7 +5,8 @@
             <TableCustom :columns="columns" :tableData="tableData" :total="page.total" :viewFunc="handleView"
                 :delFunc="handleDelete" :page-change="changePage" :editFunc="handleEdit">
                 <template #toolbarBtn>
-                    <el-button type="warning" :icon="CirclePlusFilled" @click="visible = false" data-track="click_100000002">新增</el-button>
+                    <el-button type="warning" :icon="CirclePlusFilled" @click="openDialog" data-track="click_100000002">新增</el-button>
+                    <el-button type="warning" :icon="CirclePlusFilled" @click="clearData" >清空</el-button>
                 </template>
             </TableCustom>
 
@@ -21,7 +22,7 @@
 </template>
 
 <script setup lang="ts" name="system-user">
-import { ref, reactive, watch } from 'vue';
+import { ref, reactive, watch, onActivated } from 'vue';
 import { ElMessage } from 'element-plus';
 import { CirclePlusFilled } from '@element-plus/icons-vue';
 import { User } from '@/types/user';
@@ -70,10 +71,11 @@ const getData = async () => {
             deviceInfo: item.deviceInfo.browser + ' ' + item.deviceInfo.version,
         }
     })
-    console.log('table', tableData.value)
     page.total = data.length;
 };
-getData();
+setTimeout(() => {
+  getData()
+}, 500)
 
 const changePage = (val: number) => {
     page.index = val;
@@ -155,6 +157,26 @@ const handleView = (row: User) => {
 const handleDelete = (row: User) => {
     ElMessage.success('删除成功');
 }
+
+const openDialog = () => {
+    visible.value = true;
+    setTimeout(() => {
+      getData()
+    }, 500)
+}
+
+const clearData = () => {
+  localStorage.setItem('trackData', '[]')
+  setTimeout(() => {
+    getData()
+  }, 500)
+}
+
+onActivated(() => {
+  setTimeout(() => {
+    getData()
+  }, 500)
+})
 
 </script>
 
