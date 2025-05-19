@@ -28,12 +28,27 @@ app.directive('permiss', {
 
 app.mount('#app');
 
+const CustomPlugin = {
+  install(sdk) {
+    // 监听自定义事件
+    window.addEventListener('keyup', (e) => {
+      console.log('keyup', e)
+      sdk.track('custom_event', { detail: '123' });
+    });
+  }
+};
+
 const tracker = new Tracker({
   appId: 'CargoGo',
   userId: 'hu123456',
-  url: 'https://www.cargogo.com.cn/api/track'
-});
+  url: 'https://www.cargogo.com.cn/api/track',
+  accreditId: 'xcxcxccxc',
+}).use(CustomPlugin)
 
 if (tracker) {
   (window as any).tracker = tracker
 }
+
+
+
+

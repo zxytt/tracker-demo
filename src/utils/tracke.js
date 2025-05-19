@@ -1,6 +1,19 @@
-// import { getDeviceInfo } from './util'
+// 数据上报格式
+// saas埋点接口 : /platform/web/v1/api/eventTracking
+// webapi埋点接口：/platform/webapi/v1/api/eventTracking
+// POST JSON
+// {
+//     "appId":"应用id：Cargogo—Saas、Cargogo-WebApi、Cargogo-WebSite",
+//     "accreditId":"3sfsdf3sfsfsfsef（租户授权码）",
+//     "userId":"用户id",
+//     "eventType":"pageView / click（页面or点击事件）",
+//     "pageUrl":"/BusinessAccount/businessAccount（路由）",
+//     "clickCode":"buttonId（点击事件id）",
+//     "referer":"",
+//     "userAgent":"",
+//     "param":{} // 扩展参数
+// }
 
-// 单例控制
 let instance = null;
 // 原生方法缓存
 let originalPushState = null;
@@ -13,17 +26,18 @@ export default class Tracker {
     instance = this;
 
     // 配置项验证
-    if (!options.appId || !options.userId || !options.url) {
-      throw new Error('Missing required parameters: appId, userId, url');
+    if (!options.appId || !options.userId || !options.accreditId || !options.url) {
+      throw new Error('Missing required parameters: appId, userId, accreditId, url');
     }
 
     this.appId = options.appId;
     this.userId = options.userId;
+    this.accreditId = options.accreditId;
     this.url = options.url;
     this.deviceInfo = getDeviceInfo();
     this.queue = [];
-    this.maxBatchSize = 10;
     this._isDestroyed = false;
+    this.debug = options.debug || false;  // 是否开启调试模式
 
     // 防抖相关配置
     this._debounceTimer = null;
@@ -100,9 +114,13 @@ export default class Tracker {
       lastUrl = currentUrl;
       lastTimestamp = now;
 
+      const { path, params } = getUrlParam(currentUrl);
+
       this.track('pageview', {
-        uuid: currentUrl.split('#')[1],
-        url: currentUrl.split('#')[1],
+        pageUrl: path,
+        param: {
+          params
+        }
       });
     };
   }
@@ -114,31 +132,48 @@ export default class Tracker {
   }
 
   _handleClick(e) {
-    const target = e.target.closest('[data-track]');
+    const target = e.target.closest('[data-track-uuid]');
+    const data = e.target.closest('[data-track-param]');
     if (target) {
+      const { path, params } = getUrlParam(window.location.href);
       this.track('click', {
-        uuid: target.dataset.track,
-        url: window.location.href.split('#')[1],
+        clickCode: target.dataset.trackUuid,
+        pageUrl: path,
+        param: {
+          data: JSON.parse(data.dataset.trackParam),
+          params: {
+            ...params
+          }
+        }
       });
     }
+  }
+
+  use (plugin) {
+    if (typeof plugin.install === 'function') {
+      plugin.install(this);
+      console.log('插件已安装')
+    }
+    // 支持链式调用
+    return this
   }
 
   track(event, data = {}) {
     if (this._isDestroyed) return;
     
     const payload = {
-      event,
-      timestamp: Date.now(),
       appId: this.appId,
       userId: this.userId,
-      deviceInfo: this.deviceInfo,
+      accreditId: this.accreditId,
+      eventType: event,
+      referer: document.referrer,
+      userAgent: this.deviceInfo.userAgent,
       ...data
     };
 
     this.queue.push(payload);
-    
-    // 使用防抖机制批量上报
-    this._debounceFlush();
+
+    this._flushQueue();
   }
 
   _debounceFlush() {
@@ -161,14 +196,16 @@ export default class Tracker {
 
     try {
       // 真实上报逻辑
-      // await fetch(this.url, {
-      //   method: 'POST',
-      //   body: JSON.stringify(sendData),
-      //   headers: { 'Content-Type': 'application/json' }
-      // });
-      console.log('上报数据:', sendData);
-      const localstorageData = JSON.parse(localStorage.getItem('trackData') || '[]');
-      localStorage.setItem('trackData', JSON.stringify([...localstorageData, ...sendData]));
+      if (this.debug) {
+        console.log('debug:', sendData[0]);
+      } else {
+        console.log('上报成功', sendData[0])
+        // await fetch(this.url, {
+        //   method: 'POST',
+        //   body: JSON.stringify(sendData[0]),
+        //   headers: { 'Content-Type': 'application/json' }
+        // });
+      }
     } catch (err) {
       console.error('上报失败:', err);
       this.queue.unshift(...sendData); // 失败回滚
@@ -210,6 +247,29 @@ export default class Tracker {
   }
 }
 
+const getUrlParam = (url) => {
+  if (!url) return {};
+  let path = ''
+  let params = {}
+  let list = ''
+  if (url.includes('#')) {
+    list = url.split('#')
+  } else {
+    list = url.split('com')
+  }
+  if (list[1]) {
+    const arr = list[1].split('?')
+    path = arr[0]
+    if (arr[1]) {
+      const paramList = arr[1].split('&')
+      paramList.forEach(item => {
+        const [key, value] = item.split('=')
+        params[key] = value
+      })
+    }
+  }
+  return { path, params }
+}
 
 const getDeviceInfo = () => {
   const userAgent = navigator.userAgent.toLowerCase();
